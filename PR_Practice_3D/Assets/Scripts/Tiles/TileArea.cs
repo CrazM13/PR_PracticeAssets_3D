@@ -2,14 +2,17 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 [ExecuteInEditMode]
 public class TileArea : MonoBehaviour {
 
 	[Header("Edit Mode Settings")]
-	[SerializeField] private bool isRecording;
+	[SerializeField] private bool isEditing;
 
 	[SerializeField] private Vector3 tileSize;
-	[SerializeField] private Material material;
 
 	private Dictionary<Vector3Int, TileInstance> tiles = new Dictionary<Vector3Int, TileInstance>();
 
@@ -18,42 +21,60 @@ public class TileArea : MonoBehaviour {
 	}
 
 	void Update() {
-		if (isRecording) {
+		if (isEditing) {
 
-			List<Vector3Int> toRemove = new List<Vector3Int>();
-			foreach (KeyValuePair<Vector3Int, TileInstance> tile in tiles) {
-				if (!tile.Value) tiles.Remove(tile.Key);
+			EditTileArea();
 
-				Transform child = tile.Value.transform;
-				Vector3Int tilePos = new Vector3Int(Mathf.FloorToInt(child.position.x / tileSize.x), Mathf.FloorToInt(child.position.y / tileSize.y), Mathf.FloorToInt(child.position.z / tileSize.z));
-				if (tile.Key != tilePos) {
-					toRemove.Add(tile.Key);
-				}
-			}
-
-			foreach (Vector3Int position in toRemove) {
-				tiles.Remove(position);
-				MessageAdjacentTiles(position);
-			}
-			toRemove.Clear();
-
-			for (int childIndex = 0; childIndex < transform.childCount; childIndex++) {
-				Transform child = transform.GetChild(childIndex);
-
-				Vector3Int tilePos = new Vector3Int(Mathf.FloorToInt(child.position.x / tileSize.x), Mathf.FloorToInt(child.position.y / tileSize.y), Mathf.FloorToInt(child.position.z / tileSize.z));
-				child.position = new Vector3(tilePos.x * tileSize.x, tilePos.y * tileSize.y, tilePos.z * tileSize.z);
 			
-				if (tiles.ContainsKey(tilePos)) {
-					if (tiles[tilePos] != child) {
-						tiles[tilePos] = child.GetComponent<TileInstance>();
-						MessageAdjacentTiles(tilePos);
-					}
-				} else {
-					tiles.Add(tilePos, child.GetComponent<TileInstance>());
+		}
+
+		RenderArea();
+	}
+
+	private void EditTileArea() {
+
+		
+
+		UpdateEditedTiles();
+	}
+
+	public void UpdateEditedTiles() {
+		List<Vector3Int> toRemove = new List<Vector3Int>();
+		foreach (KeyValuePair<Vector3Int, TileInstance> tile in tiles) {
+			if (!tile.Value) {
+				toRemove.Add(tile.Key);
+				continue;
+			}
+
+			Transform child = tile.Value.transform;
+			Vector3Int tilePos = new Vector3Int(Mathf.FloorToInt(child.position.x / tileSize.x), Mathf.FloorToInt(child.position.y / tileSize.y), Mathf.FloorToInt(child.position.z / tileSize.z));
+			if (tile.Key != tilePos) {
+				toRemove.Add(tile.Key);
+			}
+		}
+
+		foreach (Vector3Int position in toRemove) {
+			tiles.Remove(position);
+			MessageAdjacentTiles(position);
+		}
+		toRemove.Clear();
+
+		for (int childIndex = 0; childIndex < transform.childCount; childIndex++) {
+			Transform child = transform.GetChild(childIndex);
+
+			Vector3Int tilePos = new Vector3Int(Mathf.FloorToInt(child.localPosition.x / tileSize.x), Mathf.FloorToInt(child.localPosition.y / tileSize.y), Mathf.FloorToInt(child.localPosition.z / tileSize.z));
+			child.localPosition = new Vector3(tilePos.x * tileSize.x, tilePos.y * tileSize.y, tilePos.z * tileSize.z);
+
+			if (tiles.ContainsKey(tilePos)) {
+				if (tiles[tilePos] != child) {
+					tiles[tilePos] = child.GetComponent<TileInstance>();
 					MessageAdjacentTiles(tilePos);
 				}
-			
+			} else {
+				tiles.Add(tilePos, child.GetComponent<TileInstance>());
+				MessageAdjacentTiles(tilePos);
 			}
+
 		}
 	}
 
@@ -77,6 +98,78 @@ public class TileArea : MonoBehaviour {
 		} else {
 			return containsTile1 == containsTile2;
 		}
+	}
+
+	public TileInstance GetTileAt(Vector3Int position) {
+		if (tiles.ContainsKey(position)) return tiles[position];
+		return null;
+	}
+
+	private void RenderArea() {
+		if (tiles.Count <= 0) return;
+
+		List<TileInstance> tilesToRender = new List<TileInstance>(tiles.Values);
+
+		tilesToRender.Sort((ti1, ti2) => ti1.GetRuleID().CompareTo(ti2.GetRuleID()));
+
+		string currentBatch = tilesToRender[0].GetRuleID();
+		TileInstance firstOfBatch = tilesToRender[0];
+		List<Matrix4x4> matrices = new List<Matrix4x4>();
+		foreach (TileInstance tile in tilesToRender) {
+			string newRuleID = tile.GetRuleID();
+			if (newRuleID == currentBatch) {
+				matrices.Add(tile.GetMatrix());
+			} else {
+				RenderCollection(firstOfBatch.GetMesh(), firstOfBatch.GetMaterial(), matrices.ToArray());
+				firstOfBatch = tile;
+				currentBatch = newRuleID;
+				matrices.Clear();
+				matrices.Add(tile.GetMatrix());
+			}
+
+		}
+		RenderCollection(firstOfBatch.GetMesh(), firstOfBatch.GetMaterial(), matrices.ToArray());
+	}
+
+	private void RenderCollection(Mesh mesh, Material material, Matrix4x4[] matrices) {
+		Graphics.DrawMeshInstanced(mesh, 0, material, matrices);
+	}
+
+	#region Raycast
+	public bool Raycast(Vector3 position, Vector3 direction, float maxDistance, float stepDistance, out Vector3Int hit) {
+		return Raycast(new Ray(position, direction), maxDistance, stepDistance, out hit);
+	}
+
+	public bool Raycast(Ray ray, float maxDistance, float stepDistance, out Vector3Int hit) {
+		float distance = 0;
+		while (distance < maxDistance) {
+			Vector3 position = ray.GetPoint(distance);
+			Vector3Int tilePos = WorldToTile(position);
+
+			if (TileExists(tilePos)) {
+				hit = tilePos;
+				return true;
+			}
+			distance += stepDistance;
+		}
+
+		hit = default;
+		return false;
+	}
+	#endregion
+
+	public Vector3Int WorldToTile(Vector3 position) {
+		position = transform.TransformPoint(position);
+
+		return new Vector3Int(Mathf.RoundToInt(position.x / tileSize.x), Mathf.RoundToInt(position.y / tileSize.y), Mathf.RoundToInt(position.z / tileSize.z));
+	}
+
+	public Vector3 TileToWorld(Vector3Int position) {
+		return new Vector3(position.x * tileSize.x, position.y * tileSize.y, position.z * tileSize.z);
+	}
+
+	public bool TileExists(Vector3Int position) {
+		return tiles.ContainsKey(position);
 	}
 
 }

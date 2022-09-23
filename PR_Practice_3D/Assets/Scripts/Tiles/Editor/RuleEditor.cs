@@ -13,7 +13,7 @@ public class RuleEditor : PropertyDrawer {
 	private readonly Color matchColour = Color.green;
 
 	private const float LAYER_SIZE = 99;
-	private const float TOP_MARGIN = 48;
+	private const float TOP_MARGIN = 64;
 	private const float LEFT_MARGIN = 50;
 
 	public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
@@ -27,6 +27,9 @@ public class RuleEditor : PropertyDrawer {
 		// Draw label
 		position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
 
+		int indent = EditorGUI.indentLevel;
+		EditorGUI.indentLevel = 0;
+
 		// Calculate rects
 		var layer0Rect = new Rect(position.x + LEFT_MARGIN, position.y + TOP_MARGIN, LAYER_SIZE, LAYER_SIZE);
 		var layer1Rect = new Rect(position.x + LEFT_MARGIN, position.y + LAYER_SIZE + 8 + TOP_MARGIN, LAYER_SIZE, LAYER_SIZE);
@@ -35,8 +38,11 @@ public class RuleEditor : PropertyDrawer {
 		SerializedProperty rules = property.FindPropertyRelative("ruleArea");
 
 
-		EditorGUI.PropertyField(new Rect(position.x, position.y, position.width, 16), property.FindPropertyRelative("mesh"));
-		EditorGUI.PropertyField(new Rect(position.x, position.y + 16, position.width, 16), property.FindPropertyRelative("meshRotation"));
+		EditorGUI.PropertyField(new Rect(position.x, position.y, position.width, 16), property.FindPropertyRelative("ruleID"));
+
+		EditorGUI.PropertyField(new Rect(position.x, position.y + 16, position.width, 16), property.FindPropertyRelative("mesh"));
+
+		EditorGUI.PropertyField(new Rect(position.x, position.y + 32, position.width, 16), property.FindPropertyRelative("meshRotation"));
 
 		//EditorGUI.PrefixLabel(layer0Rect, new GUIContent("Top"));
 		DrawLayerGrid(layer0Rect, rules);
@@ -44,6 +50,8 @@ public class RuleEditor : PropertyDrawer {
 		DrawMidLayerGrid(layer1Rect, rules);
 		//EditorGUI.PrefixLabel(layer2Rect, new GUIContent("Bottom"));
 		DrawLayerGrid(layer2Rect, rules, 18);
+
+		EditorGUI.indentLevel = indent;
 
 		EditorGUI.EndProperty();
 	}
@@ -74,11 +82,7 @@ public class RuleEditor : PropertyDrawer {
 				if (x == 1 && y == 1) continue;
 
 				int index;
-				if (y == 1 && x > 1) {
-					index = 9 + ((x - 1) * 3) + y;
-				} else {
-					index = 9 + (x * 3) + y;
-				}
+				index = 9 + (x * 3) + y;
 				
 				Rect rect = new Rect(position.x + (width * x) + x, position.y + (width * y) + y, width - 2, height - 2);
 				if (index < property.arraySize) DrawGridCell(rect, property.GetArrayElementAtIndex(index));
