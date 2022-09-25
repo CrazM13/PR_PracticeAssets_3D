@@ -16,10 +16,6 @@ public class TileArea : MonoBehaviour {
 
 	private Dictionary<Vector3Int, TileInstance> tiles = new Dictionary<Vector3Int, TileInstance>();
 
-	void Start() {
-
-	}
-
 	void Update() {
 		if (isEditing) {
 

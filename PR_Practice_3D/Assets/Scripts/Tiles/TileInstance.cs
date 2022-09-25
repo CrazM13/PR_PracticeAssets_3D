@@ -15,7 +15,7 @@ public class TileInstance : MonoBehaviour {
 		}
 	}
 
-	public string ID => rules.GetRuleTileID();
+	public string ID => rules.GetTileID();
 
 	public Matrix4x4 GetMatrix() => Matrix4x4.TRS(transform.position, currentRule.GetRotation(), Vector3.one);
 
@@ -23,7 +23,7 @@ public class TileInstance : MonoBehaviour {
 
 	public Material GetMaterial() => rules.GetTileMaterial();
 
-	public string GetRuleID() => $"{rules.GetRuleTileID()}/{currentRule.GetRuleID()}";
+	public string GetRuleID() => $"{rules.GetTileID()}/{currentRule.GetRuleID()}";
 
 	public void SetRuleTile(RuleTile ruleTile) {
 		this.rules = ruleTile;
