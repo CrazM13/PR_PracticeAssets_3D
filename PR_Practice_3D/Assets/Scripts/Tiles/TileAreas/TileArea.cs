@@ -106,14 +106,16 @@ public class TileArea : MonoBehaviour {
 
 		List<TileInstance> tilesToRender = new List<TileInstance>(tiles.Values);
 
-		tilesToRender.Sort((ti1, ti2) => ti1.GetRuleID().CompareTo(ti2.GetRuleID()));
+		tilesToRender.Sort((ti1, ti2) => ti1.GetTileID().CompareTo(ti2.GetTileID()));
 
-		string currentBatch = tilesToRender[0].GetRuleID();
+		string currentBatch = tilesToRender[0].GetTileID();
 		TileInstance firstOfBatch = tilesToRender[0];
 		List<Matrix4x4> matrices = new List<Matrix4x4>();
 		foreach (TileInstance tile in tilesToRender) {
-			string newRuleID = tile.GetRuleID();
-			if (newRuleID == currentBatch) {
+			if (tile.IsOccluded()) continue;
+
+			string newRuleID = tile.GetTileID();
+			if (newRuleID == currentBatch && matrices.Count < 1023) {
 				matrices.Add(tile.GetMatrix());
 			} else {
 				RenderCollection(firstOfBatch.GetMesh(), firstOfBatch.GetMaterial(), matrices.ToArray());
@@ -166,6 +168,22 @@ public class TileArea : MonoBehaviour {
 
 	public bool TileExists(Vector3Int position) {
 		return tiles.ContainsKey(position);
+	}
+
+	public void SetTile(Vector3Int position, TileBase tile) {
+		if (tiles.ContainsKey(position)) {
+			tiles[position].SetTile(tile);
+		} else {
+			GameObject newTile = new GameObject($"New Tile [{tile.name}]");
+			newTile.transform.position = TileToWorld(position);
+			newTile.transform.parent = transform;
+			TileInstance ti = newTile.AddComponent<TileInstance>();
+			ti.SetTile(tile);
+
+			tiles.Add(position, ti);
+		}
+
+		MessageAdjacentTiles(position);
 	}
 
 }

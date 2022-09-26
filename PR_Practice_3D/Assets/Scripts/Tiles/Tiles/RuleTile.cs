@@ -25,4 +25,8 @@ public class RuleTile : TileBase {
 		return currentRule;
 	}
 
+	public override ITileBehaviour GetBehaviour() {
+		return new RuleTileBehaviour(this);
+	}
+
 }

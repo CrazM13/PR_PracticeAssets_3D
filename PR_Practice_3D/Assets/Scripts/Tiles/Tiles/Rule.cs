@@ -9,6 +9,7 @@ public class Rule {
 	[SerializeField] private string ruleID;
 	[SerializeField] private Mesh mesh;
 	[SerializeField] private Vector3 meshRotation;
+	[SerializeField] private bool occluding;
 
 	public Rule() {
 		for (int i = 0; i < ruleArea.Length; i++) ruleArea[i] = RuleAreaTypes.NONE;
@@ -46,6 +47,8 @@ public class Rule {
 	public Mesh GetMesh() => mesh;
 	public Matrix4x4 GetMatrix() => Matrix4x4.TRS(Vector3.zero, GetRotation(), Vector3.one);
 	public Quaternion GetRotation() => Quaternion.Euler(meshRotation);
+
+	public bool IsOccluding() => occluding;
 
 	public string GetRuleID() => ruleID;
 

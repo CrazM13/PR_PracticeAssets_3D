@@ -8,12 +8,14 @@ public class RuleTileEditor : Editor {
 
 	SerializedProperty ruleTileID;
 	SerializedProperty tileMaterial;
+	SerializedProperty tileMesh;
 	SerializedProperty rules;
 
 	private void OnEnable() {
 		rules = serializedObject.FindProperty("rules");
 		tileMaterial = serializedObject.FindProperty("tileMaterial");
-		ruleTileID = serializedObject.FindProperty("ruleTileID");
+		tileMesh = serializedObject.FindProperty("tileMesh");
+		ruleTileID = serializedObject.FindProperty("tileID");
 	}
 
 	public override void OnInspectorGUI() {
@@ -25,6 +27,7 @@ public class RuleTileEditor : Editor {
 
 		EditorGUILayout.PropertyField(ruleTileID);
 		EditorGUILayout.PropertyField(tileMaterial);
+		EditorGUILayout.PropertyField(tileMesh, new GUIContent("Default Mesh"));
 		EditorGUILayout.Space(10);
 
 		for (int i = 0; i < rules.arraySize; i++) {

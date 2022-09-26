@@ -13,7 +13,7 @@ public class RuleEditor : PropertyDrawer {
 	private readonly Color matchColour = Color.green;
 
 	private const float LAYER_SIZE = 99;
-	private const float TOP_MARGIN = 64;
+	private const float TOP_MARGIN = 80;
 	private const float LEFT_MARGIN = 50;
 
 	public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
@@ -43,6 +43,8 @@ public class RuleEditor : PropertyDrawer {
 		EditorGUI.PropertyField(new Rect(position.x, position.y + 16, position.width, 16), property.FindPropertyRelative("mesh"));
 
 		EditorGUI.PropertyField(new Rect(position.x, position.y + 32, position.width, 16), property.FindPropertyRelative("meshRotation"));
+
+		EditorGUI.PropertyField(new Rect(position.x, position.y + 48, position.width, 16), property.FindPropertyRelative("occluding"));
 
 		//EditorGUI.PrefixLabel(layer0Rect, new GUIContent("Top"));
 		DrawLayerGrid(layer0Rect, rules);

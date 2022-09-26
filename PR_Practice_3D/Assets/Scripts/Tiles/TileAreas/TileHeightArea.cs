@@ -8,14 +8,14 @@ public class TileHeightArea : TileArea {
 	[SerializeField] private Texture2D heightMap;
 
 	[Header("Landscape")]
-	//[SerializeField] private float horizontalScale;
+	[SerializeField] private TileLandscape landscape;
 
 	[Header("Settings")]
 	[SerializeField] private float horizontalScale;
 	[SerializeField] private float verticalScale;
 
-	private void Start() {
-
+	[ContextMenu("Build From Heightmap")]
+	private void CreateTileAreaFromHeightmap() {
 		int textureWidth = heightMap.width;
 		int textureHeight = heightMap.height;
 
@@ -29,13 +29,14 @@ public class TileHeightArea : TileArea {
 				int textureCoordZ = Mathf.RoundToInt(z / horizontalScale);
 
 				int height = Mathf.RoundToInt(heightMap.GetPixel(textureCoordX, textureCoordZ).r * verticalScale);
-				
-				for (int y = 0; y < height; y++) {
 
+				for (int y = 0; y < height; y++) {
+					TileBase tile = landscape.GetTileByY(y);
+
+					this.SetTile(new Vector3Int(x, y, z), tile);
 				}
 			}
 		}
-
 	}
 
 }
