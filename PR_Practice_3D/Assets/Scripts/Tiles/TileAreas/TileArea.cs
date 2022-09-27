@@ -1,78 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
-
-[ExecuteInEditMode]
 public class TileArea : MonoBehaviour {
 
-	[Header("Edit Mode Settings")]
-	[SerializeField] private bool isEditing;
+	public UnityEvent<TileUpdateEvent> OnTileUpdated { get; private set; } = new UnityEvent<TileUpdateEvent>();
 
 	[SerializeField] private Vector3 tileSize;
 
 	private Dictionary<Vector3Int, TileInstance> tiles = new Dictionary<Vector3Int, TileInstance>();
 
-	void Update() {
-		if (isEditing) {
-
-			EditTileArea();
-
-			
-		}
-
-		RenderArea();
-	}
-
-	private void EditTileArea() {
-
-		
-
-		UpdateEditedTiles();
-	}
-
-	public void UpdateEditedTiles() {
-		List<Vector3Int> toRemove = new List<Vector3Int>();
-		foreach (KeyValuePair<Vector3Int, TileInstance> tile in tiles) {
-			if (!tile.Value) {
-				toRemove.Add(tile.Key);
-				continue;
-			}
-
-			Transform child = tile.Value.transform;
-			Vector3Int tilePos = new Vector3Int(Mathf.FloorToInt(child.position.x / tileSize.x), Mathf.FloorToInt(child.position.y / tileSize.y), Mathf.FloorToInt(child.position.z / tileSize.z));
-			if (tile.Key != tilePos) {
-				toRemove.Add(tile.Key);
-			}
-		}
-
-		foreach (Vector3Int position in toRemove) {
-			tiles.Remove(position);
-			MessageAdjacentTiles(position);
-		}
-		toRemove.Clear();
-
-		for (int childIndex = 0; childIndex < transform.childCount; childIndex++) {
-			Transform child = transform.GetChild(childIndex);
-
-			Vector3Int tilePos = new Vector3Int(Mathf.FloorToInt(child.localPosition.x / tileSize.x), Mathf.FloorToInt(child.localPosition.y / tileSize.y), Mathf.FloorToInt(child.localPosition.z / tileSize.z));
-			child.localPosition = new Vector3(tilePos.x * tileSize.x, tilePos.y * tileSize.y, tilePos.z * tileSize.z);
-
-			if (tiles.ContainsKey(tilePos)) {
-				if (tiles[tilePos] != child) {
-					tiles[tilePos] = child.GetComponent<TileInstance>();
-					MessageAdjacentTiles(tilePos);
-				}
-			} else {
-				tiles.Add(tilePos, child.GetComponent<TileInstance>());
-				MessageAdjacentTiles(tilePos);
-			}
-
-		}
-	}
+	public Vector3 TileSize => tileSize;
 
 	private void MessageAdjacentTiles(Vector3Int position) {
 		for (int x = -1; x <= 1; x++) {
@@ -99,38 +38,6 @@ public class TileArea : MonoBehaviour {
 	public TileInstance GetTileAt(Vector3Int position) {
 		if (tiles.ContainsKey(position)) return tiles[position];
 		return null;
-	}
-
-	private void RenderArea() {
-		if (tiles.Count <= 0) return;
-
-		List<TileInstance> tilesToRender = new List<TileInstance>(tiles.Values);
-
-		tilesToRender.Sort((ti1, ti2) => ti1.GetTileID().CompareTo(ti2.GetTileID()));
-
-		string currentBatch = tilesToRender[0].GetTileID();
-		TileInstance firstOfBatch = tilesToRender[0];
-		List<Matrix4x4> matrices = new List<Matrix4x4>();
-		foreach (TileInstance tile in tilesToRender) {
-			if (tile.IsOccluded()) continue;
-
-			string newRuleID = tile.GetTileID();
-			if (newRuleID == currentBatch && matrices.Count < 1023) {
-				matrices.Add(tile.GetMatrix());
-			} else {
-				RenderCollection(firstOfBatch.GetMesh(), firstOfBatch.GetMaterial(), matrices.ToArray());
-				firstOfBatch = tile;
-				currentBatch = newRuleID;
-				matrices.Clear();
-				matrices.Add(tile.GetMatrix());
-			}
-
-		}
-		RenderCollection(firstOfBatch.GetMesh(), firstOfBatch.GetMaterial(), matrices.ToArray());
-	}
-
-	private void RenderCollection(Mesh mesh, Material material, Matrix4x4[] matrices) {
-		Graphics.DrawMeshInstanced(mesh, 0, material, matrices);
 	}
 
 	#region Raycast
@@ -170,20 +77,38 @@ public class TileArea : MonoBehaviour {
 		return tiles.ContainsKey(position);
 	}
 
-	public void SetTile(Vector3Int position, TileBase tile) {
+	public void SetTile(Vector3Int position, TileBase tile, bool notifyNeighbors = true) {
 		if (tiles.ContainsKey(position)) {
-			tiles[position].SetTile(tile);
-		} else {
-			GameObject newTile = new GameObject($"New Tile [{tile.name}]");
-			newTile.transform.position = TileToWorld(position);
-			newTile.transform.parent = transform;
-			TileInstance ti = newTile.AddComponent<TileInstance>();
-			ti.SetTile(tile);
+			if (tile != null) tiles[position].SetTile(tile);
+			else tiles.Remove(position);
+		} else if (tile != null) {
+			TileInstance ti = new TileInstance(tile, position);
 
 			tiles.Add(position, ti);
 		}
 
-		MessageAdjacentTiles(position);
+		OnTileUpdated.Invoke(new TileUpdateEvent(this, position, position));
+		if (notifyNeighbors) MessageAdjacentTiles(position);
+	}
+
+	public void NotifyAllTiles() {
+		foreach (TileInstance tile in tiles.Values) {
+			TileUpdateEvent @event = new TileUpdateEvent(this, tile.GetTilePosition(), tile.GetTilePosition());
+			OnTileUpdated.Invoke(@event);
+			tile.OnNeighborUpdate(@event);
+		}
+	}
+
+	public List<TileInstance> GetAllTiles() => new List<TileInstance>(tiles.Values);
+
+	[ContextMenu("Clear Tile Area")]
+	public void ClearTileArea() {
+		tiles.Clear();
+		OnTileUpdated.Invoke(new TileUpdateEvent(this, Vector3Int.zero, Vector3Int.zero));
+	}
+
+	public void ForceUpdateRenderers() {
+		GetComponent<TileAreaRenderer>().ForceUpdate();
 	}
 
 }

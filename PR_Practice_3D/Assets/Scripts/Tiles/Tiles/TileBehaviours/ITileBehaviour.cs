@@ -14,7 +14,7 @@ public interface ITileBehaviour {
 
 	public Mesh GetMesh();
 
-	public Matrix4x4 GetMatrix(Transform tileTransform);
+	public Quaternion GetRotation();
 
 	public bool IsOccluding();
 

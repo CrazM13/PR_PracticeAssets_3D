@@ -12,8 +12,8 @@ public class RuleTileBehaviour : ITileBehaviour {
 		this.currentRule = null;
 	}
 
-	public Matrix4x4 GetMatrix(Transform tileTransform) {
-		return Matrix4x4.TRS(tileTransform.position, currentRule.GetRotation(), Vector3.one);
+	public Quaternion GetRotation() {
+		return currentRule.GetRotation();
 	}
 
 	public Mesh GetMesh() {

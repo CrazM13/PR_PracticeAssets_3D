@@ -2,7 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TileHeightArea : TileArea {
+public class TileHeightArea : MonoBehaviour {
+
+	[Header("Tile Area")]
+	[SerializeField] private TileArea tileArea;
 
 	[Header("Height Map")]
 	[SerializeField] private Texture2D heightMap;
@@ -16,14 +19,11 @@ public class TileHeightArea : TileArea {
 
 	[ContextMenu("Build From Heightmap")]
 	private void CreateTileAreaFromHeightmap() {
-		int textureWidth = heightMap.width;
-		int textureHeight = heightMap.height;
+		int mapWidth = Mathf.FloorToInt(heightMap.width * horizontalScale);
+		int mapDepth = Mathf.FloorToInt(heightMap.height * horizontalScale);
 
-		int mapWidth = Mathf.FloorToInt(textureWidth * horizontalScale);
-		int mapDepth = Mathf.FloorToInt(textureHeight * horizontalScale);
-
-		for (int x = -mapWidth / 2; x < mapWidth / 2; x++) {
-			for (int z = -mapDepth / 2; z < mapDepth / 2; z++) {
+		for (int x = 0; x < mapWidth; x++) {
+			for (int z = 0; z < mapDepth; z++) {
 
 				int textureCoordX = Mathf.RoundToInt(x / horizontalScale);
 				int textureCoordZ = Mathf.RoundToInt(z / horizontalScale);
@@ -32,11 +32,12 @@ public class TileHeightArea : TileArea {
 
 				for (int y = 0; y < height; y++) {
 					TileBase tile = landscape.GetTileByY(y);
-
-					this.SetTile(new Vector3Int(x, y, z), tile);
+					tileArea.SetTile(new Vector3Int(x - (mapWidth / 2), y, z - (mapDepth / 2)), tile, false);
 				}
 			}
 		}
+
+		tileArea.NotifyAllTiles();
 	}
 
 }
