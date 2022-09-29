@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   layers:
   - tile: {fileID: 11400000, guid: 619b05e8c5435da4bb79f315d2eb15e3, type: 2}
-    layers: 1
+    layers: 0
   - tile: {fileID: 11400000, guid: d260476f2eb1c2d44956e04a9af03455, type: 2}
-    layers: 4
+    layers: 3
   - tile: {fileID: 11400000, guid: 6acbe6b764a55844697c87b849a685da, type: 2}
     layers: 0

@@ -3,6 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
+#if UNITY_EDITOR
+using UnityEditor.SceneManagement;
+using UnityEngine.SceneManagement;
+using UnityEditor;
+#endif
+
+[ExecuteInEditMode]
 public class TileArea : MonoBehaviour {
 
 	public UnityEvent<TileUpdateEvent> OnTileUpdated { get; private set; } = new UnityEvent<TileUpdateEvent>();
@@ -12,6 +19,8 @@ public class TileArea : MonoBehaviour {
 	private Dictionary<Vector3Int, TileInstance> tiles = new Dictionary<Vector3Int, TileInstance>();
 
 	public Vector3 TileSize => tileSize;
+
+	public bool IsDirty { get; set; } = true;
 
 	private void MessageAdjacentTiles(Vector3Int position) {
 		for (int x = -1; x <= 1; x++) {
@@ -41,20 +50,27 @@ public class TileArea : MonoBehaviour {
 	}
 
 	#region Raycast
-	public bool Raycast(Vector3 position, Vector3 direction, float maxDistance, float stepDistance, out Vector3Int hit) {
+	public bool Raycast(Vector3 position, Vector3 direction, float maxDistance, float stepDistance, out TileRaycastHit hit) {
 		return Raycast(new Ray(position, direction), maxDistance, stepDistance, out hit);
 	}
 
-	public bool Raycast(Ray ray, float maxDistance, float stepDistance, out Vector3Int hit) {
+	public bool Raycast(Ray ray, float maxDistance, float stepDistance, out TileRaycastHit hit) {
 		float distance = 0;
+		Vector3Int previousTile = WorldToTile(ray.origin);
 		while (distance < maxDistance) {
 			Vector3 position = ray.GetPoint(distance);
 			Vector3Int tilePos = WorldToTile(position);
 
 			if (TileExists(tilePos)) {
-				hit = tilePos;
+				hit = new TileRaycastHit() {
+					position = tilePos,
+					worldPosition = TileToWorld(tilePos),
+					normal = SimplifyDirection(previousTile - tilePos)
+				};
 				return true;
 			}
+
+			previousTile = tilePos;
 			distance += stepDistance;
 		}
 
@@ -87,8 +103,13 @@ public class TileArea : MonoBehaviour {
 			tiles.Add(position, ti);
 		}
 
+		IsDirty = true;
 		OnTileUpdated.Invoke(new TileUpdateEvent(this, position, position));
 		if (notifyNeighbors) MessageAdjacentTiles(position);
+
+#if UNITY_EDITOR
+		EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+#endif
 	}
 
 	public void NotifyAllTiles() {
@@ -104,11 +125,69 @@ public class TileArea : MonoBehaviour {
 	[ContextMenu("Clear Tile Area")]
 	public void ClearTileArea() {
 		tiles.Clear();
-		OnTileUpdated.Invoke(new TileUpdateEvent(this, Vector3Int.zero, Vector3Int.zero));
+		IsDirty = true;
 	}
 
-	public void ForceUpdateRenderers() {
-		GetComponent<TileAreaRenderer>().ForceUpdate();
+	private Vector3 SimplifyDirection(Vector3 direction) {
+		float x = Mathf.Abs(direction.x);
+		float y = Mathf.Abs(direction.y);
+		float z = Mathf.Abs(direction.z);
+
+		if (x > y) {
+			if (x > z) {
+				return new Vector3(Mathf.Sign(direction.x) * 1, 0 , 0);
+			} else {
+				return new Vector3(0, 0, Mathf.Sign(direction.z) * 1);
+			}
+		} else {
+			if (y > z) {
+				return new Vector3(0, Mathf.Sign(direction.y) * 1, 0);
+			} else {
+				return new Vector3(0, 0, Mathf.Sign(direction.z) * 1);
+			}
+		}
+
 	}
 
+#if UNITY_EDITOR
+	
+	private void Save(Scene _) {
+		string path = $"Assets/TileAreaData/{SceneManager.GetActiveScene().name}/{name}/data.asset";
+		TileAreaData dataObject = AssetDatabase.LoadAssetAtPath<TileAreaData>(path);
+		if (!dataObject) {
+			dataObject = ScriptableObject.CreateInstance<TileAreaData>();
+			CreatePath(path);
+			AssetDatabase.CreateAsset(dataObject, path);
+		}
+		dataObject.Save(this);
+		EditorUtility.SetDirty(dataObject);
+	}
+
+	private void Load() {
+		string path = $"Assets/TileAreaData/{SceneManager.GetActiveScene().name}/{name}/data.asset";
+		Debug.Log($"Loading {path}");
+		TileAreaData dataObject = AssetDatabase.LoadAssetAtPath<TileAreaData>(path);
+		if (dataObject) {
+			dataObject.Load(this);
+		}
+	}
+
+	private void CreatePath(string path) {
+		string[] paths = path.Split('/');
+		string newPath = paths[0];
+		for (int i = 1; i < paths.Length; i++) {
+			if (!AssetDatabase.IsValidFolder($"{newPath}/{paths[i]}")) {
+				AssetDatabase.CreateFolder(newPath, paths[i]);
+				newPath += "/" + paths[i];
+			}
+			
+		}
+	}
+
+	private void OnEnable() {
+		EditorSceneManager.sceneSaved -= Save;
+		EditorSceneManager.sceneSaved += Save;
+		Load();
+	}
+#endif
 }
