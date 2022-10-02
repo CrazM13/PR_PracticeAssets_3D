@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Stone
   m_EditorClassIdentifier: 
   tileID: StoneTest
+  tileThumbnail: {fileID: 2800000, guid: 41d245f94ec6b8d498eac7c6ab03e94c, type: 3}
   tileMaterial: {fileID: 2100000, guid: 4afa32d72d50e424fae08d1ca2377888, type: 2}
   tileMesh: {fileID: 5062246478642505140, guid: e055c083145e0f141882d8a88cc2f746, type: 3}
   occluding: 1

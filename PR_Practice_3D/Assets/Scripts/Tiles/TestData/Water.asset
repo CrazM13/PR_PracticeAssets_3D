@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Water
   m_EditorClassIdentifier: 
   tileID: WaterTest
+  tileThumbnail: {fileID: 2800000, guid: 877c34f12e7e5c54bb416fde1787fd45, type: 3}
   tileMaterial: {fileID: 2100000, guid: ff56eab69bf7a9e46967b8e664b43259, type: 2}
   tileMesh: {fileID: 5062246478642505140, guid: e055c083145e0f141882d8a88cc2f746, type: 3}
   occluding: 1

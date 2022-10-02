@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Grass
   m_EditorClassIdentifier: 
   tileID: GrassTest
+  tileThumbnail: {fileID: 2800000, guid: 6ffa2eb0af22cfc4a9b963c1b958100e, type: 3}
   tileMaterial: {fileID: 2100000, guid: 32978538600b7ae488d437591ceb4c1f, type: 2}
   tileMesh: {fileID: 5062246478642505140, guid: e055c083145e0f141882d8a88cc2f746, type: 3}
   occluding: 1
